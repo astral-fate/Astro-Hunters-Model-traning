@@ -49,3 +49,41 @@ To prepare the raw TESS data for your model, you perform a series of crucial fil
 * **Removing Bad Data (`.remove_nans()`):** Deletes any data points that are "Not a Number" (NaNs), which represent errors or gaps in the observation.
 * **Normalization:** You divide the entire light curve by its median brightness. This standardizes the data, centering the star's baseline brightness around a value of 1.0. This is essential for comparing different stars and for the model to work effectively.
 * **Detrending (`median_filter`):** This is a critical step to remove "noise." Stars naturally vary in brightness over long periods due to stellar activity (like starspots) or slight instrumental drift. The median filter smooths out these slow, long-term trends, which helps to isolate the sharp, short-duration dips caused by a planetary transit. This makes the signal you're looking for much cleaner and more prominent.
+
+That's an excellent and very important question. The confusion comes from the two different meanings of "processed" in this context: the initial processing done by NASA and the scientific processing you're performing.
+
+You are correct; you did have to find the transit signal yourself. The initial processing by NASA is not meant to find planets but to make the data usable for science.
+
+---
+## Two Levels of "Processing" 🔬
+
+Think of it like a professional photographer. They take a raw photo (the satellite data) and then "process" it in their studio before giving it to a client.
+
+### 1. Instrumental Processing (What NASA Does for You)
+This is what "processed data from the archive" refers to. NASA's TESS Science Processing Operations Center (SPOC) takes the raw pixel data from the satellite and cleans it up by removing known instrument errors. This is a complex but standardized procedure.
+
+Their pipeline performs several key steps:
+* **Cosmic Ray Removal:** It finds and removes sharp spikes in the data caused by high-energy particles hitting the camera sensor.
+* **Background Subtraction:** It subtracts light from other sources, like the faint glow of dust in our solar system (zodiacal light) or scattered light from the Earth and Moon.
+* **Aperture Photometry:** This is the main step. The software defines a small group of pixels (an "aperture") around the target star and carefully adds up all the light from just that star for each image. This turns a series of images into a single time series of brightness measurements—the light curve. 
+* **Systematics Correction:** It identifies and removes errors that are common across many stars at the same time, usually caused by tiny wobbles in the spacecraft or temperature changes.
+
+When this is done, you get a clean light curve that accurately represents the star's brightness. However, this light curve still contains the star's natural variability *and* any potential transit signals.
+
+### 2. Scientific Signal Processing (What You Are Doing)
+This is the next level, and it's the actual science. NASA provides the clean, reliable light curve, but it's up to astronomers (and you!) to analyze it and find the interesting signals.
+
+Finding the transit signal is the discovery part. Your script's steps—**normalization, detrending with a median filter, and using machine learning**—are all part of this second, scientific level of processing.
+
+---
+## Was There an Easier Way to Find the Transits? 💡
+
+For your ultimate goal of finding *new* planets, building a machine learning model is a powerful and correct approach.
+
+However, for the specific task of **labeling your training data** (where you were using stars *known* to have planets), there is a standard scientific shortcut that's much more direct than using `IsolationForest`. It's called **folding**.
+
+Since you already know the orbital period of the planet from the NASA Exoplanet Archive, you can "fold" the light curve on that period. This technique stacks all the individual transit events directly on top of each other, making the combined signal incredibly obvious and easy to label.
+
+The `lightkurve` library has a simple function for this: `lc.fold(period=PLANET_PERIOD)`.
+
+**In summary:** NASA does the crucial instrumental "pre-processing" to give you clean data. Your job is to perform the scientific "signal processing" to make discoveries. For labeling your training set, the "folding" technique would have been a more direct way to find the known signals.
